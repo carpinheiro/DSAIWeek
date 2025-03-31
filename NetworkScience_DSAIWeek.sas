@@ -2,24 +2,6 @@ cas;
 
 caslib _all_ assign;
 
-%let dl = /mnt/azure-files/homes/Carlos.Pinheiro@sas.com/ParisLines;
-
-%let dm = /mnt/azure-files/homes/Carlos.Pinheiro@sas.com/ParisMaps;
-
-%let dmng = /mnt/azure-files/homes/Carlos.Pinheiro@sas.com/NetSciGraphs;
-
-%let dma = /mnt/azure-files/homes/Carlos.Pinheiro@sas.com/Asheville;
-
-%include '/mnt/azure-files/homes/Carlos.Pinheiro@sas.com/CPNetGNL.sas';
-
-%include '/mnt/azure-files/homes/Carlos.Pinheiro@sas.com/CPMapGNL.sas';
-
-%include '/mnt/azure-files/homes/Carlos.Pinheiro@sas.com/DataSetsLesMiserables.sas';
-
-%include '/mnt/azure-files/homes/Carlos.Pinheiro@sas.com/LoadDataParisMetroLines.sas';
-
-%CPNetGNL(dir=&dmng,nodes=casuser.lmnodes,nn=node,nl=label,links=casuser.lmlinks,f=from,t=to,v=weight,fn=LesMiserables);
-
 /* --------- */
 /* subgraphs */
 /* --------- */
@@ -47,8 +29,6 @@ proc network
 	;
 run;
 
-%CPNetGNL(dir=&dmng,nodes=casuser.outnodes,nn=node,nl=label,ng=concomp,links=casuser.outlinks,f=from,t=to,v=weight,g=concomp,fn=concomp);
-
 /* biconnected components */
 
 proc network
@@ -71,8 +51,6 @@ proc network
 		out = casuser.biconcompout
 	;
 run;
-
-%CPNetGNL(dir=&dmng,nodes=casuser.outnodes,nn=node,nl=label,ng=artpoint,links=casuser.outlinks,f=from,t=to,v=weight,g=biconcomp,fn=artpoint);
 
 data casuser.nodesap;
 	set casuser.outnodes(where=(artpoint=0));
@@ -108,8 +86,6 @@ proc network
 	;
 run;
 
-%CPNetGNL(dir=&dmng,nodes=casuser.outnodes,nn=node,nl=label,ng=concomp,links=casuser.outlinks,f=from,t=to,v=weight,g=concomp,fn=biconcomp);
-
 /* community detection */
 
 proc network
@@ -138,10 +114,6 @@ proc network
 	;
 run;
 
-%CPNetGNL(dir=&dmng,nodes=casuser.outnodes,nn=node,nl=label,ng=community_1,links=casuser.outlinks,f=from,t=to,v=weight,g=community_1,fn=comm1);
-%CPNetGNL(dir=&dmng,nodes=casuser.outnodes,nn=node,nl=label,ng=community_2,links=casuser.outlinks,f=from,t=to,v=weight,g=community_2,fn=comm2);
-%CPNetGNL(dir=&dmng,nodes=casuser.outnodes,nn=node,nl=label,ng=community_3,links=casuser.outlinks,f=from,t=to,v=weight,g=community_3,fn=comm3);
-
 /* core */
 
 proc network
@@ -162,8 +134,6 @@ proc network
 	core 
 	;
 run;
-
-%CPNetGNL(dir=&dmng,nodes=casuser.outnodes,nn=node,nl=label,ng=core_out,links=casuser.lmlinks,f=from,t=to,v=weight,fn=core);
 
 /* reach network */
 
@@ -196,8 +166,6 @@ data casuser.nodesaux;
 	if a and b;
 run;
 
-%CPNetGNL(dir=&dmng,nodes=casuser.nodesaux,nn=node,nl=label,ng=reach,links=casuser.outreachlinks,f=from,t=to,v=weight,g=reach,fn=reach1);
-
 proc network
 	direction = undirected
 	links = casuser.lmlinks
@@ -222,8 +190,6 @@ data casuser.nodesaux;
 	by node;
 	if a and b;
 run;
-
-%CPNetGNL(dir=&dmng,nodes=casuser.nodesaux,nn=node,nl=label,ng=reach,links=casuser.outreachlinks,f=from,t=to,v=weight,g=reach,fn=reach2);
 
 /* node similarity */
 
@@ -257,13 +223,9 @@ proc network
 	;
 run;
 
-%CPNetGNL(dir=&dmng,links=casuser.links,f=from,t=to,fn=similarity);
-
 data linkssimilar;
 	set casuser.outsimilarity(where=(source<>sink and adamicAdar>0));
 run;
-
-%CPNetGNL(dir=&dmng,links=linkssimilar,f=source,t=sink,v=adamicAdar,fn=nodessimilarity);
 
 /* pattern match */
 
@@ -284,8 +246,6 @@ H diamond I hexagon J square K diamond L hexagon M square
 N hexagon O hexagon P square Q dot R hexagon S square
 ;
 run; 
-
-%CPNetGNL(dir=&dmng,nodes=casuser.nodes,nn=node,nl=node,ns=shape,ng=shape,links=casuser.links,f=from,t=to,v=weight,fn=patternmatchnet);
 
 data casuser.nodesquery;
 	input node $ shape $ @@;
@@ -326,8 +286,6 @@ data lksquery;
 	if weight=. then weight=1;
 run;
 
-%CPNetGNL(dir=&dmng,nodes=lnknd,nn=node,nl=node,ns=shape,ng=shape,links=lksquery,f=from,t=to,v=weight,l=llw,fn=patternmatchquery);
-
 proc network
 	direction = undirected
 	nodes = casuser.nodes
@@ -362,8 +320,6 @@ proc sql;
 	create table nodesmatch as
 		select distinct node, shape from casuser.outmatchnodes;
 quit;
-
-%CPNetGNL(dir=&dmng,nodes=nodesmatch,nn=node,nl=node,ns=shape,ng=shape,links=casuser.outmatchlinks,f=from,t=to,v=weight,fn=patternmatch);
 
 /* -------------------- */
 /* network centralities */
@@ -416,15 +372,6 @@ proc network
 	;
 run;
 
-data casuser.nodeslm;
-	merge casuser.outnodes(in=a) 
-		  casuser.lmnodes(in=b);
-	by node;
-	if a and b;
-run;
-
-%CPNetGNL(dir=&dmng,nodes=casuser.nodeslm,nn=node,nl=label,nv=centr_influence1_wt,ng=community_1,links=casuser.outlinks,f=from,t=to,v=weight,g=community_1,fn=centralitycomm);
-
 /* entire network */
 
 proc network
@@ -451,16 +398,6 @@ proc network
 			pagerankalpha = 0.85
 	;
 run;
-
-data casuser.nodeslm;
-	merge casuser.lmnodes(in=a) 
-		  casuser.outnodescomm(in=b) 
-		  casuser.outnodes(in=c);
-	by node;
-	if a and b and c;
-run;
-
-%CPNetGNL(dir=&dmng,nodes=casuser.nodeslm,nn=node,nl=label,nv=centr_influence1_wt,ng=community_1,links=casuser.lmlinks,f=from,t=to,v=weight,g=community_1,fn=centrality);
 
 /* -------------------- */
 /* network optimization */
@@ -506,8 +443,6 @@ proc optnetwork
 		out = casuser.outlap
 	;
 run;
-
-%CPNetGNL(dir=&dmng,links=casuser.chairslinks,f=employee,t=part,v=cost,fn=linearassign);
 
 /* minimum-cost network flow */
 
@@ -563,18 +498,6 @@ proc optnetwork
 	;
 run;
 
-%CPNetGNL(dir=&dmng,links=casuser.linksoutmcnf,f=from,t=to,v=mcf_flow,fn=mincostnetflow);
-
-/* ----------------- */
-/* Paris metro lines */
-/* ----------------- */
-
-%let latitude=48.856358;
-%let longitude=2.351632;
-%let zoom=14;
-
-%CPMapGNL(dir=&dm,d=casuser.lines,clt=&latitude,clg=&longitude,cz=&zoom,lt=stop_lat,lg=stop_lon,v=5,ll=line,lc=color,m=poly,fn=metrolines);
-
 /* clique */
 
 proc optnetwork
@@ -592,31 +515,6 @@ proc optnetwork
 		out = casuser.cliquemetro
 	;
 run;
-
-proc sql;
-	create table cliquemetro as
-		select distinct a.node, a.clique, b.lat as stop_lat, b.lon as stop_lon, '#000000' as color, compress('CL'||put(a.clique,4.)) as line 
-			from casuser.cliquemetro as a 
-				inner join metronodes as b 
-					on a.node = b.node
-						order by a.clique;
-quit;
-
-data cliques;
-	set casuser.lines cliquemetro;
-	if clique=. then
-		do;
-			wln=3;
-			plg=0;
-		end;
-	else
-		do;
-			wln=8;
-			plg=1;
-		end;
-run;
-
-%CPMapGNL(dir=&dm,d=cliques,clt=&latitude,clg=&longitude,cz=&zoom,lt=stop_lat,lg=stop_lon,v=wln,p=plg,ll=line,lc=color,m=poly,fn=metrocliques);
 
 /* cycle */
 
@@ -637,31 +535,6 @@ proc optnetwork
 		out = casuser.cyclemetro
 	;
 run;
-
-proc sql;
-	create table cyclemetro as
-		select distinct a.node, a.cycle, a.order, b.lat as stop_lat, b.lon as stop_lon, '#000000' as color, compress('CY'||put(a.cycle,4.)) as line 
-			from casuser.cyclemetro as a 
-				inner join metronodes as b 
-					on a.node = b.node
-						order by a.cycle;
-quit;
-
-data cycles;
-	set casuser.lines cyclemetro;
-	if cycle=. then
-		do;
-			wln=3;
-			plg=0;
-		end;
-	else
-		do;
-			wln=8;
-			plg=1;
-		end;
-run;
-
-%CPMapGNL(dir=&dm,d=cycles,clt=&latitude,clg=&longitude,cz=&zoom,lt=stop_lat,lg=stop_lon,v=wln,p=plg,ll=line,lc=color,m=poly,fn=metrocycles);
 
 /* maximum network flow */
 
@@ -717,8 +590,6 @@ proc optnetwork
 	;
 run;
 
-%CPMapGNL(dir=&dm,d=casuser.linksoutmnf,clt=&latitude,clg=&longitude,cz=&zoom,l=org,lt=org_lat,lg=org_lon,ld=dst,ltd=dst_lat,lgd=dst_lon,ll=line,v=mf_flow/250,lc=color,m=line,fn=metromaxflow);
-
 /* minimum spanning tree */
 
 proc optnetwork
@@ -734,24 +605,6 @@ proc optnetwork
 		out = casuser.minspantreemetro
 	;
 run;
-
-proc sql;
-	create table minspantreemetro as
-		select distinct a.org, a.dst, b.org_lat, b.org_lon, b.dst_lat, b.dst_lon, b.color, b.line
-			from casuser.minspantreemetro as a 
-				inner join casuser.metrolinks as b  
-					on a.org = b.org and a.dst = b.dst;
-quit;
-
-data minspantree;
-	set casuser.metrolinks minspantreemetro;
-	if dist=. then
-		axvl=6;
-	else
-		axvl=2;
-run;
-
-%CPMapGNL(dir=&dm,d=minspantree,clt=&latitude,clg=&longitude,cz=&zoom,lt=org_lat,lg=org_lon,ltd=dst_lat,lgd=dst_lon,v=axvl,lc=color,m=line,fn=metrospantree);
 
 /* path */
 
@@ -772,17 +625,6 @@ proc optnetwork
 	;
 run;
 
-proc sql;
-	create table pathmetro as
-		select distinct a.path, a.source, a.sink, a.order, a.org, a.dst, b.org_lat, b.org_lon, b.dst_lat, b.dst_lon, b.color, b.line
-			from casuser.pathmetro as a 
-				inner join casuser.metrolinksdirected as b  
-					on a.org = b.org and a.dst = b.dst
-						order by a.path, a.order;
-quit;
-
-%CPMapGNL(dir=&dm,d=pathmetro,clt=&latitude,clg=&longitude,cz=&zoom,l=org,lt=org_lat,lg=org_lon,ld=dst,ltd=dst_lat,lgd=dst_lon,v=3,o="Volontaires",od="Nation",lm=2,lc=color,m=line,fn=metropath);
-
 /* shortest path */
 
 proc optnetwork
@@ -800,26 +642,6 @@ proc optnetwork
 		outpaths = casuser.shortpathmetro
 	;
 run;
-
-proc sql;
-	create table shortestpathmetrotmp as
-		select distinct a.*, b.* from casuser.shortpathmetro as a 
-			inner join casuser.metrolinksdirected as b  
-				on a.org = b.org and a.dst = b.dst
-					order by a.order;
-quit;
-
-data shortestpathmetro;
-	ao = order;
-	set shortestpathmetrotmp;
-	if ao ne order then
-		do;
-			drop ao;
-			output;
-		end;
-run;
-
-%CPMapGNL(dir=&dm,d=shortestpathmetro,clt=&latitude,clg=&longitude,cz=&zoom,l=org,lt=org_lat,lg=org_lon,ld=dst,ltd=dst_lat,lgd=dst_lon,v=4,o="Volontaires",od="Nation",lm=2,lc=color,m=line,fn=metroshortpath);
 
 /* traveling salesman problem */
 
@@ -874,8 +696,6 @@ Au Trappiste,48.858295,2.347485
 ;
 run;
 
-%CPMapGNL(dir=&dm,d=places,clt=&latitude,clg=&longitude,cz=&zoom,l=name,lt=x,lg=y,m=marker,fn=parisplaces);
-
 /* identify all possible connections between the places to visit */
 
 proc sql;
@@ -889,8 +709,6 @@ data placeslink;
 	if org ne dst then
 		output;
 run;
-
-%CPMapGNL(dir=&dm,d=placeslink,clt=&latitude,clg=&longitude,cz=&zoom,lt=xorg,lg=yorg,ltd=xdst,lgd=ydst,m=line,fn=parisvectors);
 
 /* compute the Euclidian distance between all pairs of locations */
 
@@ -944,21 +762,6 @@ run;
 proc sql;
 	select sum(distance), sum(distance)/5 from stepsstart;
 quit;
-
-/* create the HTML file with the best walk tour */
-
-proc sql;
-	create table placestour as
-		select c.org, c.xorg, c.yorg, c.dst, d.x as xdst, d.y as ydst from
-			(select a.org, b.x as xorg, b.y as yorg, a.dst
-				from stepsstart as a 
-					inner join places as b 
-						on a.org = b.name) as c
-				inner join places as d 
-					on c.dst = d.name;
-quit;
-
-%CPMapGNL(dir=&dm,d=placestour,clt=&latitude,clg=&longitude,cz=&zoom,l=org,lt=xorg,lg=yorg,ld=dst,ltd=xdst,lgd=ydst,o='Novotel',m=tour,fn=paristsp);
 
 /* travelling salesman problem - multimodal transportation system */
 
@@ -1121,80 +924,6 @@ proc sql;
 						order by order, suborder, line;
 quit;
 
-/* joining all steps for the optimal tour: walking and shortest path for public transportation */
-
-data stationplacetourfinal;
-	length po $50. pd $50. cl $7.;
-	set stationplacetourfinaltmp;
-	if type eq 'W' then
-		do;
-			po=plorg;
-			xo=xporg;
-			yo=yporg;
-			pd=pldst;
-			xd=xpdst;
-			yd=ypdst;
-			cl='maroon';
-			ls='d';
-			omc='m';
-			dmc='m';
-			output;
-		end;
-	else
-		if suborder eq 1 then
-			do;
-				po=plorg;
-				xo=xporg;
-				yo=yporg;
-				pd='';
-				xd=xsorg;
-				yd=ysorg;
-				cl='#800000';
-				ls='d';
-				omc='m';
-				dmc='c';
-				output;
-				po=pldst;
-				xo=xpdst;
-				yo=ypdst;
-				pd='';
-				xd=xsdst;
-				yd=ysdst;
-				cl='#800000';
-				ls='d';
-				omc='m';
-				dmc='c';
-				output;
-				po='';
-				xo=org_lat;
-				yo=org_lon;
-				pd='';
-				xd=dst_lat;
-				yd=dst_lon;
-				cl=color;
-				ls='';
-				omc='c';
-				dmc='c';
-				output;
-			end;
-		else
-			do;
-				po='';
-				xo=org_lat;
-				yo=org_lon;
-				pd='';
-				xd=dst_lat;
-				yd=dst_lon;
-				cl=color;
-				ls='';
-				omc='c';
-				dmc='c';
-				output;
-			end;
-run;
-
-%CPMapGNL(dir=&dm,d=stationplacetourfinal,clt=&latitude,clg=&longitude,cz=&zoom,l=po,lt=xo,lg=yo,ld=pd,ltd=xd,lgd=yd,v=5,lc=cl,ls=ls,omc=omc,dmc=dmc,o='Novotel',m=tour,fn=paristour);
-
 /* calculate distance and time for the multimodal walk tour */
 
 data metrolinks;
@@ -1260,8 +989,6 @@ Corner Kitchen,35.56835364052998,-82.53558091251179,1
 ;
 run;
 
-%CPMapGNL(dir=&dma,d=places,clt=&latitude,clg=&longitude,cz=&zoom,l=place,lt=lat,lg=long,t=type,v=demand,o=&depot,lv='Trucks=',vv=&trucks,lsd='Capacity=',vsd=&capacity,m=marker,fn=places);
-
 /* identify all possible connections between the places to visit */
 
 proc sql;
@@ -1309,22 +1036,3 @@ proc optnetwork
 		capacity = &capacity
 		out = casuser.routes;
 run;
-
-proc sql;
-	create table routing as
-		select a.place, a.demand, case when a.route=. then 1 else a.route end as route, a.route_order, b.lat, b.long
-			from casuser.nodesout as a
-				inner join places as b
-					on a.place=b.place
-			order by route, route_order; 
-quit;
-
-proc sql noprint;
-	select place, lat, long into :d, :latd, :longd from routing where demand=.;
-quit;
-
-proc sql noprint;
-	select max(route)/&trucks+0.1 into :t from routing;
-quit;
-
-%CPMapGNL(dir=&dma,d=routing,clt=&latitude,clg=&longitude,cz=&zoom,l=place,lt=lat,lg=long,v=demand,r=route,s=route_order,i=true,m=route,fn=vrp);
